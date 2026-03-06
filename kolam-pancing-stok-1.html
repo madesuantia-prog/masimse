@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kolam Pancing — Manajemen Stok Ikan</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-deep: #0d2818;
+    --green-mid: #1a4a2e;
+    --green-light: #2d7a4f;
+    --green-accent: #4caf7d;
+    --water-blue: #1e6b8c;
+    --water-light: #29a0cc;
+    --sand: #e8d5a3;
+    --sand-dark: #c4a96b;
+    --orange-warn: #f07d2a;
+    --red-alert: #e05252;
+    --white: #f4f9f6;
+    --card-bg: rgba(20, 60, 38, 0.85);
+    --border: rgba(76, 175, 125, 0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--green-deep);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(29,107,140,0.25) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(45,122,79,0.3) 0%, transparent 60%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234caf7d' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, var(--green-mid), var(--water-blue));
+    padding: 18px 24px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--green-accent);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { font-size: 2rem; }
+  .logo-text { line-height: 1.1; }
+  .logo-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem; letter-spacing: 2px;
+    color: var(--green-accent);
+  }
+  .logo-sub { font-size: 0.72rem; color: var(--sand); letter-spacing: 1px; text-transform: uppercase; }
+
+  .clock-box {
+    text-align: right;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 16px;
+  }
+  .clock-time {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem; letter-spacing: 3px; color: var(--sand);
+    line-height: 1;
+  }
+  .clock-date { font-size: 0.7rem; color: var(--green-accent); letter-spacing: 1px; }
+
+  /* ── OPEN STATUS BAR ── */
+  .status-banner {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 10px 20px;
+    font-size: 0.9rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: background 0.5s;
+  }
+  .status-banner.open {
+    background: linear-gradient(90deg, rgba(76,175,125,0.2), rgba(76,175,125,0.1), rgba(76,175,125,0.2));
+    color: var(--green-accent);
+    border-bottom: 1px solid rgba(76,175,125,0.3);
+  }
+  .status-banner.closed {
+    background: linear-gradient(90deg, rgba(224,82,82,0.2), rgba(224,82,82,0.1), rgba(224,82,82,0.2));
+    color: var(--red-alert);
+    border-bottom: 1px solid rgba(224,82,82,0.3);
+  }
+  .status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  .open .status-dot { background: var(--green-accent); }
+  .closed .status-dot { background: var(--red-alert); animation: none; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(76,175,125,0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(76,175,125,0); }
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main { padding: 24px 20px; max-width: 1200px; margin: 0 auto; }
+
+  /* ── SECTION TITLES ── */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem; letter-spacing: 3px;
+    color: var(--sand);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ── INFO CARDS ROW ── */
+  .info-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 28px;
+  }
+  .info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px;
+    backdrop-filter: blur(8px);
+    position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .info-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .info-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(76,175,125,0.08), transparent);
+    pointer-events: none;
+  }
+  .ic-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--sand-dark); margin-bottom: 6px; }
+  .ic-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem; letter-spacing: 1px; line-height: 1;
+  }
+  .ic-unit { font-size: 0.8rem; color: var(--sand-dark); margin-left: 4px; }
+  .ic-icon { position: absolute; right: 14px; top: 14px; font-size: 1.6rem; opacity: 0.4; }
+  .val-good { color: var(--green-accent); }
+  .val-warn { color: var(--orange-warn); }
+  .val-alert { color: var(--red-alert); }
+  .val-blue { color: var(--water-light); }
+
+  /* ── STOCK TABLE ── */
+  .stock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px; margin-bottom: 28px;
+  }
+  .fish-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px; padding: 20px;
+    backdrop-filter: blur(8px);
+    position: relative; overflow: hidden;
+    transition: all 0.25s;
+  }
+  .fish-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+  .fish-card.low-stock { border-color: rgba(240,125,42,0.5); }
+  .fish-card.out-stock { border-color: rgba(224,82,82,0.5); background: rgba(224,82,82,0.08); }
+
+  .fish-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .fish-emoji { font-size: 2rem; }
+  .fish-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 1px; color: var(--sand); }
+  .fish-type { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--green-accent); }
+
+  .stock-bar-wrap { margin-bottom: 12px; }
+  .stock-bar-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--sand-dark); margin-bottom: 6px; }
+  .stock-bar-bg { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+  .stock-bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+  .fill-good { background: linear-gradient(90deg, var(--green-light), var(--green-accent)); }
+  .fill-warn { background: linear-gradient(90deg, #c47b1a, var(--orange-warn)); }
+  .fill-alert { background: linear-gradient(90deg, #a03030, var(--red-alert)); }
+
+  .fish-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fd-item { background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px 10px; }
+  .fd-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--sand-dark); }
+  .fd-val { font-weight: 800; font-size: 0.95rem; margin-top: 2px; }
+
+  .badge-restock {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 12px; padding: 5px 10px;
+    border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .badge-soon { background: rgba(76,175,125,0.2); color: var(--green-accent); border: 1px solid rgba(76,175,125,0.4); }
+  .badge-today { background: rgba(240,125,42,0.2); color: var(--orange-warn); border: 1px solid rgba(240,125,42,0.4); }
+  .badge-overdue { background: rgba(224,82,82,0.2); color: var(--red-alert); border: 1px solid rgba(224,82,82,0.4); }
+
+  /* ── JAM BUKA ── */
+  .hours-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .hour-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+    backdrop-filter: blur(8px);
+  }
+  .hour-card.today-highlight { border-color: var(--green-accent); background: rgba(76,175,125,0.12); }
+  .hour-day { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 1px; min-width: 70px; }
+  .hour-time { font-size: 0.85rem; color: var(--sand); font-weight: 700; }
+  .hour-note { font-size: 0.7rem; color: var(--sand-dark); }
+  .hour-tag {
+    margin-left: auto; padding: 3px 10px;
+    border-radius: 20px; font-size: 0.65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .ht-open { background: rgba(76,175,125,0.2); color: var(--green-accent); }
+  .ht-closed { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); }
+  .ht-today { background: var(--green-accent); color: var(--green-deep); }
+
+  /* ── ADMIN PANEL ── */
+  .admin-toggle {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; padding: 12px 24px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 30px; cursor: pointer;
+    font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--sand-dark); margin: 0 auto 20px;
+    transition: all 0.2s;
+    width: fit-content;
+  }
+  .admin-toggle:hover { background: rgba(76,175,125,0.1); color: var(--green-accent); border-color: var(--green-accent); }
+
+  .admin-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px; padding: 24px;
+    backdrop-filter: blur(8px);
+    display: none; margin-bottom: 28px;
+  }
+  .admin-panel.open { display: block; }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--sand-dark); margin-bottom: 6px; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 10px 14px;
+    background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--white);
+    font-family: 'Nunito', sans-serif; font-size: 0.9rem;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--green-accent); }
+  .form-group select option { background: var(--green-deep); }
+
+  .btn {
+    padding: 11px 24px; border: none; border-radius: 10px;
+    font-family: 'Nunito', sans-serif; font-weight: 800;
+    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--green-accent); color: var(--green-deep); }
+  .btn-primary:hover { background: #5dcf8e; transform: translateY(-1px); }
+  .btn-danger { background: rgba(224,82,82,0.2); color: var(--red-alert); border: 1px solid rgba(224,82,82,0.4); }
+  .btn-danger:hover { background: rgba(224,82,82,0.3); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ── NOTIF TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--green-mid); border: 1px solid var(--green-accent);
+    border-radius: 12px; padding: 14px 20px;
+    font-weight: 700; color: var(--green-accent);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateY(100px); opacity: 0;
+    transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 999; max-width: 300px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── WATER WAVE DECORATION ── */
+  .water-deco {
+    text-align: center; font-size: 1.5rem;
+    opacity: 0.15; letter-spacing: 4px;
+    margin: 10px 0 24px;
+    animation: wave 3s ease-in-out infinite;
+  }
+  @keyframes wave {
+    0%,100% { letter-spacing: 4px; }
+    50% { letter-spacing: 8px; }
+  }
+
+  /* ── PASSWORD MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(5, 18, 10, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.active { opacity: 1; pointer-events: all; }
+
+  .modal-box {
+    background: linear-gradient(145deg, #132b1c, #1a4a2e);
+    border: 1px solid var(--green-accent);
+    border-radius: 22px; padding: 36px 32px;
+    width: 90%; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(76,175,125,0.1);
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    text-align: center;
+  }
+  .modal-overlay.active .modal-box { transform: translateY(0) scale(1); }
+
+  .modal-icon { font-size: 2.8rem; margin-bottom: 10px; }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem; letter-spacing: 3px;
+    color: var(--sand); margin-bottom: 6px;
+  }
+  .modal-sub { font-size: 0.78rem; color: var(--sand-dark); letter-spacing: 1px; margin-bottom: 24px; }
+
+  .pw-input-wrap { position: relative; margin-bottom: 8px; }
+  .pw-input-wrap input {
+    width: 100%; padding: 13px 44px 13px 16px;
+    background: rgba(0,0,0,0.35); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--white);
+    font-family: 'Nunito', sans-serif; font-size: 1rem;
+    outline: none; text-align: center; letter-spacing: 3px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .pw-input-wrap input:focus {
+    border-color: var(--green-accent);
+    box-shadow: 0 0 0 3px rgba(76,175,125,0.15);
+  }
+  .pw-input-wrap input.error { border-color: var(--red-alert); animation: shake 0.4s ease; }
+  .pw-toggle {
+    position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    cursor: pointer; font-size: 1.1rem; opacity: 0.5;
+    transition: opacity 0.2s;
+    background: none; border: none; color: var(--white);
+  }
+  .pw-toggle:hover { opacity: 1; }
+
+  .pw-error-msg {
+    font-size: 0.75rem; color: var(--red-alert);
+    min-height: 18px; margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-login {
+    width: 100%; padding: 13px;
+    background: linear-gradient(135deg, var(--green-light), var(--green-accent));
+    border: none; border-radius: 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem; letter-spacing: 3px; color: var(--green-deep);
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(76,175,125,0.3);
+  }
+  .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(76,175,125,0.4); }
+  .btn-login:active { transform: translateY(0); }
+
+  .btn-cancel-modal {
+    margin-top: 12px; background: none; border: none;
+    color: var(--sand-dark); font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem; cursor: pointer; text-decoration: underline;
+    letter-spacing: 0.5px;
+  }
+  .btn-cancel-modal:hover { color: var(--sand); }
+
+  /* Admin unlocked badge */
+  .admin-unlocked-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    background: rgba(76,175,125,0.15); border: 1px solid rgba(76,175,125,0.4);
+    color: var(--green-accent); font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    margin-left: 10px; vertical-align: middle;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .logo-title { font-size: 1.2rem; }
+    .clock-time { font-size: 1.4rem; }
+    main { padding: 16px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎣</div>
+    <div class="logo-text">
+      <div class="logo-title">Kolam Pancing Segar</div>
+      <div class="logo-sub">Sistem Manajemen Stok Ikan</div>
+    </div>
+  </div>
+  <div class="clock-box">
+    <div class="clock-time" id="clockTime">00:00:00</div>
+    <div class="clock-date" id="clockDate">—</div>
+  </div>
+</header>
+
+<!-- STATUS BANNER -->
+<div class="status-banner" id="statusBanner">
+  <div class="status-dot"></div>
+  <span id="statusText">Memeriksa jam operasional...</span>
+</div>
+
+<main>
+
+  <!-- INFO SUMMARY -->
+  <div class="section-title">📊 Ringkasan Stok Hari Ini</div>
+  <div class="info-row">
+    <div class="info-card">
+      <div class="ic-label">Total Bobot Tersisa</div>
+      <div class="ic-value val-good" id="totalWeight">—</div>
+      <span class="ic-unit">kg</span>
+      <div class="ic-icon">⚖️</div>
+    </div>
+    <div class="info-card">
+      <div class="ic-label">Jenis Ikan Aktif</div>
+      <div class="ic-value val-blue" id="activeSpecies">—</div>
+      <span class="ic-unit">spesies</span>
+      <div class="ic-icon">🐟</div>
+    </div>
+    <div class="info-card">
+      <div class="ic-label">Stok Hampir Habis</div>
+      <div class="ic-value val-warn" id="lowStockCount">—</div>
+      <span class="ic-unit">kolam</span>
+      <div class="ic-icon">⚠️</div>
+    </div>
+    <div class="info-card">
+      <div class="ic-label">Restok Berikutnya</div>
+      <div class="ic-value val-blue" id="nextRestock" style="font-size:1.3rem">—</div>
+      <div class="ic-icon">🚚</div>
+    </div>
+  </div>
+
+  <!-- FISH STOCK CARDS -->
+  <div class="section-title">🐠 Stok Ikan per Kolam</div>
+  <div class="water-deco">〰️〰️〰️〰️〰️</div>
+  <div class="stock-grid" id="stockGrid">
+    <!-- generated by JS -->
+  </div>
+
+  <!-- JAM BUKA -->
+  <div class="section-title">🕐 Jam Operasional</div>
+  <div class="hours-grid" id="hoursGrid">
+    <!-- generated by JS -->
+  </div>
+
+  <!-- ADMIN TOGGLE -->
+  <div class="admin-toggle" onclick="toggleAdmin()">⚙️ Panel Admin</div>
+
+  <!-- ADMIN PANEL -->
+  <div class="admin-panel" id="adminPanel">
+    <div class="section-title" style="margin-bottom:18px">✏️ Perbarui Stok Ikan</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Pilih Kolam / Ikan</label>
+        <select id="selFish"></select>
+      </div>
+      <div class="form-group">
+        <label>Bobot Tersisa (kg)</label>
+        <input type="number" id="inWeight" min="0" placeholder="mis. 120">
+      </div>
+      <div class="form-group">
+        <label>Restok Berikutnya</label>
+        <input type="date" id="inRestock">
+      </div>
+      <div class="form-group">
+        <label>Harga / kg (Rp)</label>
+        <input type="number" id="inPrice" min="0" placeholder="mis. 35000">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="updateStock()">💾 Simpan Perubahan</button>
+    </div>
+
+    <hr style="border-color:var(--border); margin: 22px 0;">
+
+    <div class="section-title" style="margin-bottom:14px">➕ Tambah Jenis Ikan Baru</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nama Ikan</label>
+        <input type="text" id="newName" placeholder="mis. Ikan Patin">
+      </div>
+      <div class="form-group">
+        <label>Emoji</label>
+        <input type="text" id="newEmoji" placeholder="🐟" maxlength="4">
+      </div>
+      <div class="form-group">
+        <label>Bobot Awal (kg)</label>
+        <input type="number" id="newWeight" min="0" placeholder="mis. 200">
+      </div>
+      <div class="form-group">
+        <label>Kapasitas Maks (kg)</label>
+        <input type="number" id="newCapacity" min="0" placeholder="mis. 300">
+      </div>
+      <div class="form-group">
+        <label>Restok Pertama</label>
+        <input type="date" id="newRestock">
+      </div>
+      <div class="form-group">
+        <label>Harga / kg (Rp)</label>
+        <input type="number" id="newPrice" min="0" placeholder="mis. 30000">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addFish()">➕ Tambah Ikan</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- PASSWORD MODAL -->
+<div class="modal-overlay" id="pwModal">
+  <div class="modal-box">
+    <div class="modal-icon">🔐</div>
+    <div class="modal-title">Akses Admin</div>
+    <div class="modal-sub">Masukkan kata sandi untuk membuka Panel Admin</div>
+    <div class="pw-input-wrap">
+      <input type="password" id="pwInput" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')checkPassword()"
+        oninput="clearPwError()" autocomplete="off">
+      <button class="pw-toggle" onclick="togglePwVis()" id="pwToggleBtn" title="Tampilkan/sembunyikan">👁️</button>
+    </div>
+    <div class="pw-error-msg" id="pwError"></div>
+    <button class="btn-login" onclick="checkPassword()">🔓 Masuk</button>
+    <br>
+    <button class="btn-cancel-modal" onclick="closeModal()">Batal</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'kolamStokData_v2';
+
+const defaultFish = [
+  { id:1, name:'Ikan Mas',    emoji:'🐟', weight:185, capacity:300, restock:'2026-03-10', price:28000, type:'Kolam A' },
+  { id:2, name:'Ikan Nila',   emoji:'🐠', weight:40,  capacity:250, restock:'2026-03-07', price:25000, type:'Kolam B' },
+  { id:3, name:'Ikan Lele',   emoji:'🐡', weight:220, capacity:280, restock:'2026-03-15', price:22000, type:'Kolam C' },
+  { id:4, name:'Ikan Bawal',  emoji:'🦈', weight:15,  capacity:200, restock:'2026-03-05', price:35000, type:'Kolam D' },
+  { id:5, name:'Ikan Gurame', emoji:'🐬', weight:130, capacity:150, restock:'2026-03-20', price:55000, type:'Kolam E' },
+  { id:6, name:'Ikan Patin',  emoji:'🐋', weight:0,   capacity:220, restock:'2026-03-06', price:30000, type:'Kolam F' },
+];
+
+const operationalHours = [
+  { day:'Senin',  open:'06:00', close:'18:00' },
+  { day:'Selasa', open:'06:00', close:'18:00' },
+  { day:'Rabu',   open:'06:00', close:'18:00' },
+  { day:'Kamis',  open:'06:00', close:'18:00' },
+  { day:'Jumat',  open:'05:30', close:'18:30' },
+  { day:'Sabtu',  open:'05:00', close:'20:00' },
+  { day:'Minggu', open:'05:00', close:'20:00' },
+];
+
+function loadFish() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    return s ? JSON.parse(s) : defaultFish;
+  } catch { return defaultFish; }
+}
+function saveFish(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
+let fishData = loadFish();
+
+// ─── CLOCK ───────────────────────────────────────────────────────────────────
+const DAYS_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const MONTHS_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clockTime').textContent = `${h}:${m}:${s}`;
+  document.getElementById('clockDate').textContent =
+    `${DAYS_ID[now.getDay()]}, ${now.getDate()} ${MONTHS_ID[now.getMonth()]} ${now.getFullYear()}`;
+  updateStatusBanner(now);
+}
+
+// ─── STATUS BANNER ────────────────────────────────────────────────────────────
+function updateStatusBanner(now) {
+  const dayIdx = now.getDay(); // 0=Sun
+  const hours = operationalHours[(dayIdx + 6) % 7]; // our array Mon=0
+  const todayHours = operationalHours[dayIdx === 0 ? 6 : dayIdx - 1];
+
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const [oh, om] = todayHours.open.split(':').map(Number);
+  const [ch, cm] = todayHours.close.split(':').map(Number);
+  const isOpen = cur >= oh * 60 + om && cur < ch * 60 + cm;
+
+  const banner = document.getElementById('statusBanner');
+  const text = document.getElementById('statusText');
+  banner.className = 'status-banner ' + (isOpen ? 'open' : 'closed');
+  if (isOpen) {
+    const minsLeft = (ch * 60 + cm) - cur;
+    text.textContent = `🟢 Kolam BUKA — Tutup pukul ${todayHours.close} (${minsLeft} menit lagi)`;
+  } else {
+    if (cur < oh * 60 + om) {
+      text.textContent = `🔴 Kolam TUTUP — Buka pukul ${todayHours.open} hari ini`;
+    } else {
+      const nextDay = operationalHours[dayIdx === 6 ? 0 : dayIdx];
+      text.textContent = `🔴 Kolam TUTUP — Buka besok pukul ${nextDay ? nextDay.open : '06:00'}`;
+    }
+  }
+}
+
+// ─── SUMMARY CARDS ───────────────────────────────────────────────────────────
+function updateSummary() {
+  const total = fishData.reduce((s,f)=>s+f.weight,0);
+  const active = fishData.filter(f=>f.weight>0).length;
+  const low = fishData.filter(f=>f.weight>0 && f.weight/f.capacity < 0.25).length;
+
+  document.getElementById('totalWeight').textContent = total.toLocaleString('id-ID');
+  document.getElementById('activeSpecies').textContent = active;
+  document.getElementById('lowStockCount').textContent = low;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const upcoming = fishData
+    .filter(f=>f.restock)
+    .map(f=>({ name:f.name, date:new Date(f.restock) }))
+    .filter(f=>f.date >= today)
+    .sort((a,b)=>a.date-b.date);
+
+  if (upcoming.length) {
+    const diff = Math.round((upcoming[0].date - today)/(1000*60*60*24));
+    const label = diff === 0 ? 'Hari ini' : diff === 1 ? 'Besok' : `${diff} hari lagi`;
+    document.getElementById('nextRestock').textContent = `${upcoming[0].name} — ${label}`;
+  } else {
+    document.getElementById('nextRestock').textContent = 'Belum terjadwal';
+  }
+}
+
+// ─── STOCK CARDS ─────────────────────────────────────────────────────────────
+function stockLevel(f) {
+  if (f.weight === 0) return 'out';
+  const pct = f.weight / f.capacity;
+  if (pct < 0.25) return 'low';
+  return 'good';
+}
+
+function restockBadge(restockStr) {
+  if (!restockStr) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(restockStr);
+  const diff = Math.round((d - today)/(1000*60*60*24));
+  if (diff < 0) return `<div class="badge-restock badge-overdue">⚠️ Restok Terlambat!</div>`;
+  if (diff === 0) return `<div class="badge-restock badge-today">🚚 Restok Hari Ini!</div>`;
+  if (diff <= 3) return `<div class="badge-restock badge-today">🗓️ Restok ${diff} hari lagi</div>`;
+  return `<div class="badge-restock badge-soon">✅ Restok ${formatDate(d)}</div>`;
+}
+
+function formatDate(d) {
+  return `${d.getDate()} ${MONTHS_ID[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function renderStock() {
+  const grid = document.getElementById('stockGrid');
+  grid.innerHTML = fishData.map(f => {
+    const lvl = stockLevel(f);
+    const pct = Math.round((f.weight / f.capacity) * 100);
+    const fillClass = lvl === 'out' ? 'fill-alert' : lvl === 'low' ? 'fill-warn' : 'fill-good';
+    const valClass = lvl === 'out' ? 'val-alert' : lvl === 'low' ? 'val-warn' : 'val-good';
+    const cardClass = lvl === 'out' ? 'out-stock' : lvl === 'low' ? 'low-stock' : '';
+    const statusLabel = lvl === 'out' ? '❌ Habis' : lvl === 'low' ? '⚠️ Hampir Habis' : '✅ Tersedia';
+
+    return `
+    <div class="fish-card ${cardClass}">
+      <div class="fish-header">
+        <span class="fish-emoji">${f.emoji}</span>
+        <div>
+          <div class="fish-name">${f.name}</div>
+          <div class="fish-type">${f.type} · ${statusLabel}</div>
+        </div>
+      </div>
+      <div class="stock-bar-wrap">
+        <div class="stock-bar-label">
+          <span>Stok tersisa</span><span>${pct}%</span>
+        </div>
+        <div class="stock-bar-bg">
+          <div class="stock-bar-fill ${fillClass}" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <div class="fish-details">
+        <div class="fd-item">
+          <div class="fd-label">Bobot Tersisa</div>
+          <div class="fd-val ${valClass}">${f.weight.toLocaleString('id-ID')} kg</div>
+        </div>
+        <div class="fd-item">
+          <div class="fd-label">Kapasitas</div>
+          <div class="fd-val">${f.capacity.toLocaleString('id-ID')} kg</div>
+        </div>
+        <div class="fd-item">
+          <div class="fd-label">Harga / kg</div>
+          <div class="fd-val">Rp ${f.price.toLocaleString('id-ID')}</div>
+        </div>
+        <div class="fd-item">
+          <div class="fd-label">Kolam</div>
+          <div class="fd-val">${f.type}</div>
+        </div>
+      </div>
+      ${restockBadge(f.restock)}
+    </div>`;
+  }).join('');
+}
+
+// ─── HOURS GRID ───────────────────────────────────────────────────────────────
+function renderHours() {
+  const todayDayIdx = new Date().getDay(); // 0=Sun
+  const dayNameToday = DAYS_ID[todayDayIdx];
+
+  document.getElementById('hoursGrid').innerHTML = operationalHours.map(h => {
+    const isToday = h.day === dayNameToday;
+    return `
+    <div class="hour-card ${isToday ? 'today-highlight' : ''}">
+      <div>
+        <div class="hour-day">${h.day}</div>
+        <div class="hour-time">${h.open} – ${h.close}</div>
+        <div class="hour-note">${isToday ? '📍 Hari ini' : ''}</div>
+      </div>
+      <div class="hour-tag ${isToday ? 'ht-today' : 'ht-open'}">${isToday ? 'Hari Ini' : 'Buka'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── ADMIN PASSWORD ───────────────────────────────────────────────────────────
+const ADMIN_PW = 'masmade';
+let adminUnlocked = false;
+
+function toggleAdmin() {
+  if (adminUnlocked) {
+    const p = document.getElementById('adminPanel');
+    p.classList.toggle('open');
+    if (p.classList.contains('open')) refreshSelect();
+  } else {
+    openModal();
+  }
+}
+
+function openModal() {
+  const m = document.getElementById('pwModal');
+  m.classList.add('active');
+  setTimeout(() => document.getElementById('pwInput').focus(), 150);
+}
+
+function closeModal() {
+  document.getElementById('pwModal').classList.remove('active');
+  document.getElementById('pwInput').value = '';
+  clearPwError();
+}
+
+function checkPassword() {
+  const val = document.getElementById('pwInput').value;
+  if (val === ADMIN_PW) {
+    adminUnlocked = true;
+    closeModal();
+    const p = document.getElementById('adminPanel');
+    p.classList.add('open');
+    refreshSelect();
+    // Update toggle button label
+    const btn = document.querySelector('.admin-toggle');
+    btn.innerHTML = '⚙️ Panel Admin <span class="admin-unlocked-badge">✅ Terbuka</span>';
+    showToast('🔓 Akses admin berhasil dibuka!');
+  } else {
+    const input = document.getElementById('pwInput');
+    input.classList.add('error');
+    document.getElementById('pwError').textContent = '❌ Kata sandi salah, coba lagi.';
+    setTimeout(() => input.classList.remove('error'), 400);
+    input.value = '';
+    input.focus();
+  }
+}
+
+function clearPwError() {
+  document.getElementById('pwError').textContent = '';
+}
+
+function togglePwVis() {
+  const input = document.getElementById('pwInput');
+  const btn = document.getElementById('pwToggleBtn');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+
+// Close modal on overlay click
+document.getElementById('pwModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+function refreshSelect() {
+  const sel = document.getElementById('selFish');
+  sel.innerHTML = fishData.map(f => `<option value="${f.id}">${f.emoji} ${f.name} (${f.type})</option>`).join('');
+}
+
+function updateStock() {
+  const id = parseInt(document.getElementById('selFish').value);
+  const w = parseFloat(document.getElementById('inWeight').value);
+  const r = document.getElementById('inRestock').value;
+  const p = parseFloat(document.getElementById('inPrice').value);
+
+  const idx = fishData.findIndex(f=>f.id===id);
+  if (idx === -1) return;
+
+  if (!isNaN(w)) fishData[idx].weight = w;
+  if (r) fishData[idx].restock = r;
+  if (!isNaN(p) && p > 0) fishData[idx].price = p;
+
+  saveFish(fishData);
+  renderAll();
+  showToast(`✅ Stok ${fishData[idx].name} berhasil diperbarui!`);
+}
+
+function addFish() {
+  const name = document.getElementById('newName').value.trim();
+  const emoji = document.getElementById('newEmoji').value.trim() || '🐟';
+  const weight = parseFloat(document.getElementById('newWeight').value) || 0;
+  const capacity = parseFloat(document.getElementById('newCapacity').value) || 100;
+  const restock = document.getElementById('newRestock').value;
+  const price = parseFloat(document.getElementById('newPrice').value) || 0;
+
+  if (!name) { showToast('⚠️ Nama ikan harus diisi!'); return; }
+
+  const newId = fishData.length ? Math.max(...fishData.map(f=>f.id)) + 1 : 1;
+  fishData.push({
+    id: newId, name, emoji, weight, capacity, restock, price,
+    type: `Kolam ${String.fromCharCode(64 + fishData.length + 1)}`
+  });
+
+  saveFish(fishData);
+  renderAll();
+  refreshSelect();
+  showToast(`🐟 ${name} berhasil ditambahkan!`);
+  ['newName','newEmoji','newWeight','newCapacity','newRestock','newPrice'].forEach(id => document.getElementById(id).value = '');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ─── RENDER ALL ───────────────────────────────────────────────────────────────
+function renderAll() {
+  updateSummary();
+  renderStock();
+  renderHours();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderAll();
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>
